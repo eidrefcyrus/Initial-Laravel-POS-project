@@ -1,6 +1,6 @@
-<a href="/users">← Back to Users</a>
+<a href="/users">← Back to Staff</a>
 
-<h1>Add User</h1>
+<h1>Add Staff User</h1>
 
 <form action="/users" method="POST">
     @csrf
@@ -21,5 +21,26 @@
         @enderror
     </p>
 
-    <button type="submit">Save User</button>
+    <p>
+        <label>Email Address</label><br>
+        <input type="email" name="email" value="{{ old('email') }}">
+        @error('email')
+            <br><span style="color: red;">{{ $message }}</span>
+        @enderror
+    </p>
+
+    <p>
+        <label>Password</label><br>
+        <input type="password" name="password">
+        @error('password')
+            <br><span style="color: red;">{{ $message }}</span>
+        @enderror
+    </p>
+
+    <p>
+        <label>Confirm Password</label><br>
+        <input type="password" name="password_confirmation">
+    </p>
+
+    <button type="submit">Save Staff User</button>
 </form>

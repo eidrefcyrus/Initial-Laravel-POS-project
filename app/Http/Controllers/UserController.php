@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -28,11 +29,15 @@ class UserController extends Controller
         $validated = $request->validate([
             'username' => ['required', 'string', 'max:255', 'unique:users,username'],
             'full_name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
+
+        $validated['password'] = Hash::make($validated['password']);
 
         User::create($validated);
 
-        return redirect('/users')->with('success', 'User added successfully.');
+        return redirect('/users')->with('success', 'Staff user added successfully.');
     }
 
     public function show(User $user)
@@ -55,8 +60,21 @@ class UserController extends Controller
                 Rule::unique('users', 'username')->ignore($user->id),
             ],
             'full_name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($user->id),
+            ],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
+
+        if (! empty($validated['password'])) {
+            $validated['password'] = Hash::make($validated['password']);
+        } else {
+            unset($validated['password']);
+        }
 
         if ($request->hasFile('avatar')) {
             if ($user->avatar) {
@@ -76,11 +94,21 @@ class UserController extends Controller
 
         $user->update($validated);
 
-        return redirect('/users')->with('success', 'User updated successfully.');
+        return redirect('/users')->with('success', 'Staff user updated successfully.');
     }
 
-    public function destroy(User $user)
+        public function destroy(User $user)
     {
+        if ($user->id === auth()->id()) {
+            return redirect()->route('users.index')
+                ->with('error', 'You cannot delete the account currently logged in.');
+        }
+
+        if ($user->sales()->exists()) {
+            return redirect()->route('users.index')
+                ->with('error', 'This staff user cannot be deleted because they have sales history.');
+        }
+
         if ($user->avatar) {
             Storage::disk('public')->delete($user->avatar);
         }
@@ -88,6 +116,6 @@ class UserController extends Controller
         $user->delete();
 
         return redirect()->route('users.index')
-            ->with('success', 'User deleted successfully.');
+            ->with('success', 'Staff user deleted successfully.');
     }
 }
